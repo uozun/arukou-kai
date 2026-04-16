@@ -545,32 +545,40 @@ function initCesium() {
   viewer.scene.moon.show = false;
   viewer.scene.skyAtmosphere.show = false;
 
-  // PLATEAUデータ（新宿区 LOD2）
-  try {
-    const plateau_shinjuku = viewer.scene.primitives.add(
-      new Cesium.Cesium3DTileset({
-        url: 'https://assets.cms.plateau.reearth.io/assets/ad/52340f-3f7f-470e-918e-38eb9c27e2db/13104_shinjuku-ku_pref_2023_citygml_2_op_bldg_3dtiles_13104_shinjuku-ku_lod2/tileset.json',
-        maximumScreenSpaceError: 16,
-        cullWithChildrenBounds: true,
-      })
-    );
-    
-    plateau_shinjuku.readyPromise.then(() => {
-      console.log('PLATEAU loaded!');
-    }).catch(e => {
-      console.warn('PLATEAU load failed, using default imagery', e);
-    });
-  } catch(e) {
-    console.warn('PLATEAU not available');
+  // PLATEAUデータ（新宿区）- 複数URLでフォールバック
+  const PLATEAU_URLS = [
+    'https://plateau.geospatial.jp/main/data/3d-tiles/bldg/13100_tokyo/13104_shinjuku-ku/low_resolution/tileset.json',
+    'https://assets.cms.plateau.reearth.io/assets/ad/52340f-3f7f-470e-918e-38eb9c27e2db/13104_shinjuku-ku_pref_2023_citygml_2_op_bldg_3dtiles_13104_shinjuku-ku_lod2/tileset.json',
+  ];
+
+  async function loadPLATEAU(urls) {
+    for (const url of urls) {
+      try {
+        const tileset = viewer.scene.primitives.add(
+          new Cesium.Cesium3DTileset({
+            url,
+            maximumScreenSpaceError: 32,
+            cullWithChildrenBounds: true,
+            skipLevelOfDetail: true,
+          })
+        );
+        await tileset.readyPromise;
+        console.log('PLATEAU loaded:', url);
+        document.getElementById('loading-overlay').style.display = 'none';
+        return;
+      } catch(e) {
+        console.warn('PLATEAU failed:', url, e);
+        // 次のURLを試す
+      }
+    }
+    console.warn('All PLATEAU URLs failed');
+    document.getElementById('loading-overlay').style.display = 'none';
   }
+
+  loadPLATEAU(PLATEAU_URLS);
 
   // カメラを歩行者視点に
   updateCamera();
-
-  // ローディング非表示
-  setTimeout(() => {
-    document.getElementById('loading-overlay').style.display = 'none';
-  }, 3000);
 }
 
 // ===== カメラ更新 =====
