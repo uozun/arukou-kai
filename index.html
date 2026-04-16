@@ -547,8 +547,10 @@ function initCesium() {
 
   // PLATEAUデータ（新宿区）- 複数URLでフォールバック
   const PLATEAU_URLS = [
-    'https://plateau.geospatial.jp/main/data/3d-tiles/bldg/13100_tokyo/13104_shinjuku-ku/low_resolution/tileset.json',
+    // LOD2テクスチャ付き（建物外壁写真あり）
     'https://assets.cms.plateau.reearth.io/assets/ad/52340f-3f7f-470e-918e-38eb9c27e2db/13104_shinjuku-ku_pref_2023_citygml_2_op_bldg_3dtiles_13104_shinjuku-ku_lod2/tileset.json',
+    // フォールバック：LOD1
+    'https://plateau.geospatial.jp/main/data/3d-tiles/bldg/13100_tokyo/13104_shinjuku-ku/low_resolution/tileset.json',
   ];
 
   async function loadPLATEAU(urls) {
@@ -589,11 +591,11 @@ function updateCamera() {
     destination: Cesium.Cartesian3.fromDegrees(
       currentPos.lon,
       currentPos.lat,
-      currentPos.height + 1.6 // 人間の目線の高さ
+      currentPos.height + 3.0 // 目線の高さ
     ),
     orientation: {
       heading: Cesium.Math.toRadians(heading),
-      pitch: Cesium.Math.toRadians(-5), // ほぼ水平、少し前方を見る
+      pitch: Cesium.Math.toRadians(0), // 水平
       roll: 0
     }
   });
