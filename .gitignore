@@ -1,0 +1,14 @@
+.DS_Store
+node_modules/
+*.log
+.env
+.env.local
+.env*.local
+dist/
+.vite/
+**pycache**/
+*.py[cod]
+.venv/
+backup/
+passwords.db
+.claude
