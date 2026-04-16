@@ -164,23 +164,18 @@ async function initCesium() {
 
   // PLATEAUデータ（LOD2テクスチャ付き → フォールバックLOD1）
   document.getElementById('loading-text').textContent = 'PLATEAUデータを読み込み中...';
-  let tilesetLoaded = false;
+  
 
-  const urls = [
-    'https://assets.cms.plateau.reearth.io/assets/ad/52340f-3f7f-470e-918e-38eb9c27e2db/13104_shinjuku-ku_pref_2023_citygml_2_op_bldg_3dtiles_13104_shinjuku-ku_lod2/tileset.json',
-    'https://plateau.geospatial.jp/main/data/3d-tiles/bldg/13100_tokyo/13104_shinjuku-ku/low_resolution/tileset.json',
-  ];
-
-  for (const url of urls) {
-    if (tilesetLoaded) break;
-    try {
-      const tileset = await Cesium.Cesium3DTileset.fromUrl(url, { maximumScreenSpaceError: 8 });
-      viewer.scene.primitives.add(tileset);
-      tilesetLoaded = true;
-      console.log('PLATEAU loaded:', url);
-    } catch(e) {
-      console.warn('Failed:', url);
-    }
+  // Japan 3D Building Data（Cesium Ion アセットID: 2602291）
+  // PLATEAUデータをCesiumが最適化したもの。テクスチャ付き・地形整合済み
+  try {
+    const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(2602291, {
+      maximumScreenSpaceError: 8,
+    });
+    viewer.scene.primitives.add(tileset);
+    console.log('Japan 3D Buildings loaded!');
+  } catch(e) {
+    console.warn('Japan 3D Buildings failed:', e);
   }
 
   // 地形の高さを取得してカメラを正確に配置
