@@ -589,11 +589,11 @@ function updateCamera() {
     destination: Cesium.Cartesian3.fromDegrees(
       currentPos.lon,
       currentPos.lat,
-      currentPos.height + 1.6 // 目線の高さ
+      currentPos.height + 1.6 // 人間の目線の高さ
     ),
     orientation: {
       heading: Cesium.Math.toRadians(heading),
-      pitch: Cesium.Math.toRadians(-3), // 少し下向き
+      pitch: Cesium.Math.toRadians(-5), // ほぼ水平、少し前方を見る
       roll: 0
     }
   });
