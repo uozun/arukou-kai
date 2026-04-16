@@ -4,403 +4,73 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>日の丸歩こう会 - デモ</title>
-<script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
-<link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  
-  body {
-    font-family: 'Hiragino Sans', sans-serif;
-    background: #0a0a0a;
-    color: white;
-    height: 100dvh;
-    overflow: hidden;
-  }
+  body { font-family: 'Hiragino Sans', sans-serif; background: #000; color: white; height: 100dvh; overflow: hidden; }
+  #cesiumContainer { width: 100%; height: 100dvh; position: fixed; top: 0; left: 0; }
+  .cesium-widget-credits, .cesium-viewer-toolbar, .cesium-viewer-animationContainer, .cesium-viewer-timelineContainer, .cesium-viewer-bottom { display: none !important; }
 
-  #cesiumContainer {
-    width: 100%;
-    height: 100dvh;
-    position: fixed;
-    top: 0; left: 0;
-  }
+  #header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 12px 16px; background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent); display: flex; align-items: center; gap: 10px; }
+  .hinomaru { width: 32px; height: 32px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .hinomaru-circle { width: 18px; height: 18px; background: #C1272D; border-radius: 50%; }
+  #header h1 { font-size: 16px; font-weight: 700; }
+  #header p { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 1px; }
 
-  /* Cesium UI非表示 */
-  .cesium-widget-credits,
-  .cesium-viewer-toolbar,
-  .cesium-viewer-animationContainer,
-  .cesium-viewer-timelineContainer,
-  .cesium-viewer-bottom {
-    display: none !important;
-  }
+  #status-bar { position: fixed; top: 68px; left: 12px; right: 12px; z-index: 100; background: rgba(0,0,0,0.75); backdrop-filter: blur(10px); border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
+  .stat { text-align: center; }
+  .stat-value { font-size: 20px; font-weight: 700; }
+  .stat-label { font-size: 9px; color: rgba(255,255,255,0.5); margin-top: 1px; }
+  .stat-divider { width: 1px; height: 30px; background: rgba(255,255,255,0.15); }
 
-  /* ヘッダー */
-  #header {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    padding: 12px 16px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  #permission-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; text-align: center; }
+  #permission-overlay .icon { font-size: 64px; margin-bottom: 20px; }
+  #permission-overlay h2 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+  #permission-overlay p { font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.6; margin-bottom: 32px; }
+  #start-btn { background: #C1272D; color: white; border: none; border-radius: 50px; padding: 16px 40px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; max-width: 300px; }
 
-  .hinomaru {
-    width: 32px; height: 32px;
-    background: white;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .hinomaru-circle {
-    width: 18px; height: 18px;
-    background: #C1272D;
-    border-radius: 50%;
-  }
+  #step-indicator { position: fixed; bottom: 160px; left: 50%; transform: translateX(-50%); z-index: 100; width: 60px; height: 60px; border-radius: 50%; background: rgba(193,39,45,0.3); border: 2px solid rgba(193,39,45,0.5); display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
+  #step-indicator.active { background: rgba(193,39,45,0.9); border-color: #C1272D; transform: translateX(-50%) scale(1.2); }
 
-  #header h1 {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-  }
-  #header p {
-    font-size: 10px;
-    color: rgba(255,255,255,0.6);
-    margin-top: 1px;
-  }
+  #walk-guide { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 100; text-align: center; pointer-events: none; }
+  #walk-guide .guide-icon { font-size: 36px; animation: bounce 1s ease-in-out infinite; }
+  #walk-guide p { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 4px; background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 20px; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
 
-  /* ステータスバー */
-  #status-bar {
-    position: fixed;
-    top: 70px; left: 12px; right: 12px;
-    z-index: 100;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 10px 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid rgba(255,255,255,0.1);
-  }
+  #direction-controls { position: fixed; bottom: 20px; left: 0; right: 0; z-index: 100; display: flex; justify-content: center; gap: 12px; }
+  .dir-btn { background: rgba(0,0,0,0.75); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 50%; width: 52px; height: 52px; font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
+  .dir-btn:active { background: rgba(193,39,45,0.8); }
 
-  .stat {
-    text-align: center;
-  }
-  .stat-value {
-    font-size: 20px;
-    font-weight: 700;
-    color: #fff;
-  }
-  .stat-label {
-    font-size: 9px;
-    color: rgba(255,255,255,0.5);
-    margin-top: 1px;
-  }
-
-  .stat-divider {
-    width: 1px;
-    height: 30px;
-    background: rgba(255,255,255,0.15);
-  }
-
-  /* センサー許可ボタン */
-  #permission-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-    background: rgba(0,0,0,0.92);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-    text-align: center;
-  }
-
-  #permission-overlay .icon {
-    font-size: 64px;
-    margin-bottom: 20px;
-  }
-
-  #permission-overlay h2 {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 10px;
-  }
-
-  #permission-overlay p {
-    font-size: 14px;
-    color: rgba(255,255,255,0.6);
-    line-height: 1.6;
-    margin-bottom: 32px;
-  }
-
-  #start-btn {
-    background: #C1272D;
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 16px 40px;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    cursor: pointer;
-    width: 100%;
-    max-width: 300px;
-  }
-
-  /* 歩行ガイド */
-  #walk-guide {
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    text-align: center;
-    pointer-events: none;
-  }
-
-  #walk-guide .guide-icon {
-    font-size: 40px;
-    animation: bounce 1s ease-in-out infinite;
-  }
-
-  #walk-guide p {
-    font-size: 12px;
-    color: rgba(255,255,255,0.7);
-    margin-top: 4px;
-    background: rgba(0,0,0,0.5);
-    padding: 4px 12px;
-    border-radius: 20px;
-  }
-
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
-
-  /* 歩行検知インジケーター */
-  #step-indicator {
-    position: fixed;
-    bottom: 160px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    width: 60px; height: 60px;
-    border-radius: 50%;
-    background: rgba(193,39,45,0.3);
-    border: 2px solid rgba(193,39,45,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.1s;
-  }
-
-  #step-indicator.active {
-    background: rgba(193,39,45,0.9);
-    border-color: #C1272D;
-    transform: translateX(-50%) scale(1.2);
-  }
-
-  #step-indicator span {
-    font-size: 24px;
-  }
-
-  /* 方向コントロール */
-  #direction-controls {
-    position: fixed;
-    bottom: 20px;
-    left: 0; right: 0;
-    z-index: 100;
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    padding: 0 20px;
-  }
-
-  .dir-btn {
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: white;
-    border-radius: 50%;
-    width: 52px; height: 52px;
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
-
-  .dir-btn:active {
-    background: rgba(193,39,45,0.8);
-    border-color: #C1272D;
-  }
-
-  /* POI通知 */
-  #poi-notification {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 150;
-    background: rgba(0,0,0,0.9);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(193,39,45,0.5);
-    border-radius: 20px;
-    padding: 24px;
-    text-align: center;
-    width: 280px;
-    display: none;
-  }
-
+  #poi-notification { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 150; background: rgba(0,0,0,0.92); backdrop-filter: blur(20px); border: 1px solid rgba(193,39,45,0.5); border-radius: 20px; padding: 24px; text-align: center; width: 280px; display: none; }
   #poi-notification .poi-icon { font-size: 48px; margin-bottom: 12px; }
   #poi-notification h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
   #poi-notification p { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 16px; }
-  #poi-notification button {
-    background: #C1272D;
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 10px 24px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    margin: 0 4px;
-  }
-  #poi-notification .close-btn {
-    background: rgba(255,255,255,0.1);
-  }
+  #poi-notification button { background: #C1272D; color: white; border: none; border-radius: 50px; padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer; }
 
-  /* ゴール演出 */
-  #goal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 300;
-    background: rgba(0,0,0,0.9);
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 32px;
-  }
+  #goal-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.92); display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px; }
+  #goal-overlay .badge { width: 120px; height: 120px; background: radial-gradient(circle, #FFD700, #B8902A); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 60px; margin-bottom: 24px; animation: badge-appear 0.5s cubic-bezier(0.175,0.885,0.32,1.275); box-shadow: 0 0 40px rgba(255,215,0,0.5); }
+  @keyframes badge-appear { from{transform:scale(0) rotate(-180deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+  #goal-overlay h2 { font-size: 28px; font-weight: 900; margin-bottom: 8px; }
+  #goal-overlay .governor-msg { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 16px; margin: 20px 0; font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.85); }
+  #goal-overlay button { background: #C1272D; color: white; border: none; border-radius: 50px; padding: 14px 36px; font-size: 16px; font-weight: 700; cursor: pointer; }
 
-  #goal-overlay .badge {
-    width: 120px; height: 120px;
-    background: radial-gradient(circle, #FFD700, #B8902A);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 60px;
-    margin-bottom: 24px;
-    animation: badge-appear 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 0 40px rgba(255,215,0,0.5);
-  }
-
-  @keyframes badge-appear {
-    from { transform: scale(0) rotate(-180deg); opacity: 0; }
-    to { transform: scale(1) rotate(0deg); opacity: 1; }
-  }
-
-  #goal-overlay h2 {
-    font-size: 28px;
-    font-weight: 900;
-    margin-bottom: 8px;
-  }
-
-  #goal-overlay .governor-msg {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px;
-    padding: 16px;
-    margin: 20px 0;
-    font-size: 14px;
-    line-height: 1.7;
-    color: rgba(255,255,255,0.85);
-  }
-
-  #goal-overlay button {
-    background: #C1272D;
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 14px 36px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 8px;
-  }
-
-  /* センサーデバッグ */
-  #debug {
-    position: fixed;
-    top: 130px;
-    right: 12px;
-    z-index: 100;
-    background: rgba(0,0,0,0.6);
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 10px;
-    color: rgba(255,255,255,0.5);
-    display: none;
-  }
-
-  /* ローディング */
-  #loading-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 250;
-    background: #0a0a0a;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-  }
-
-  .loading-hinomaru {
-    width: 80px; height: 80px;
-    background: white;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  .loading-hinomaru-circle {
-    width: 46px; height: 46px;
-    background: #C1272D;
-    border-radius: 50%;
-  }
-
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-  }
-
-  #loading-overlay p {
-    color: rgba(255,255,255,0.6);
-    font-size: 14px;
-  }
+  #loading-overlay { position: fixed; inset: 0; z-index: 250; background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+  .loading-hinomaru { width: 80px; height: 80px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s ease-in-out infinite; }
+  .loading-hinomaru-circle { width: 46px; height: 46px; background: #C1272D; border-radius: 50%; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+  #loading-overlay p { color: rgba(255,255,255,0.6); font-size: 14px; }
 </style>
 </head>
 <body>
 
-<!-- ローディング -->
 <div id="loading-overlay">
-  <div class="loading-hinomaru">
-    <div class="loading-hinomaru-circle"></div>
-  </div>
-  <p>新宿の街を読み込み中...</p>
+  <div class="loading-hinomaru"><div class="loading-hinomaru-circle"></div></div>
+  <p id="loading-text">新宿の街を読み込み中...</p>
 </div>
 
-<!-- Cesium地図 -->
 <div id="cesiumContainer"></div>
 
-<!-- センサー許可オーバーレイ -->
 <div id="permission-overlay">
   <div class="icon">🚶</div>
   <h2>日の丸歩こう会</h2>
@@ -408,57 +78,33 @@
   <button id="start-btn" onclick="requestPermission()">はじめる</button>
 </div>
 
-<!-- ヘッダー -->
 <div id="header">
   <div class="hinomaru"><div class="hinomaru-circle"></div></div>
-  <div>
-    <h1>日の丸歩こう会</h1>
-    <p>第1回 新宿コース</p>
-  </div>
+  <div><h1>日の丸歩こう会</h1><p>第1回 新宿コース</p></div>
 </div>
 
-<!-- ステータス -->
 <div id="status-bar">
-  <div class="stat">
-    <div class="stat-value" id="step-count">0</div>
-    <div class="stat-label">歩数</div>
-  </div>
+  <div class="stat"><div class="stat-value" id="step-count">0</div><div class="stat-label">歩数</div></div>
   <div class="stat-divider"></div>
-  <div class="stat">
-    <div class="stat-value" id="distance">0m</div>
-    <div class="stat-label">距離</div>
-  </div>
+  <div class="stat"><div class="stat-value" id="distance">0m</div><div class="stat-label">距離</div></div>
   <div class="stat-divider"></div>
-  <div class="stat">
-    <div class="stat-value" id="participants">🟢 12</div>
-    <div class="stat-label">参加中</div>
-  </div>
+  <div class="stat"><div class="stat-value" id="participants">🟢 12</div><div class="stat-label">参加中</div></div>
   <div class="stat-divider"></div>
-  <div class="stat">
-    <div class="stat-value" id="progress-text">0%</div>
-    <div class="stat-label">進捗</div>
-  </div>
+  <div class="stat"><div class="stat-value" id="progress-text">0%</div><div class="stat-label">進捗</div></div>
 </div>
 
-<!-- 歩行検知インジケーター -->
 <div id="step-indicator"><span>👟</span></div>
 
-<!-- 歩行ガイド -->
 <div id="walk-guide">
   <div class="guide-icon">🚶</div>
   <p>歩いて街を進もう</p>
 </div>
 
-<!-- 方向コントロール -->
 <div id="direction-controls">
   <button class="dir-btn" ontouchstart="startTurn('left')" ontouchend="stopTurn()" onmousedown="startTurn('left')" onmouseup="stopTurn()">◀</button>
   <button class="dir-btn" ontouchstart="startTurn('right')" ontouchend="stopTurn()" onmousedown="startTurn('right')" onmouseup="stopTurn()">▶</button>
 </div>
 
-<!-- デバッグ -->
-<div id="debug"></div>
-
-<!-- POI通知 -->
 <div id="poi-notification">
   <div class="poi-icon" id="poi-icon">🏪</div>
   <h3 id="poi-name">スポット名</h3>
@@ -466,36 +112,25 @@
   <button onclick="closePOI()">✕ 閉じる</button>
 </div>
 
-<!-- ゴール演出 -->
 <div id="goal-overlay">
   <div class="badge">🏅</div>
   <h2>完歩おめでとう！</h2>
-  <p style="color:rgba(255,255,255,0.6); font-size:13px; margin-top:4px;">新宿コース 全行程完走</p>
-  <div class="governor-msg" id="governor-msg">
-    「○○さん、完歩ありがとうございます。<br>
-    新宿の街を最後まで歩いてくださり、<br>
-    本当に嬉しく思います。<br>
-    またぜひ来てください。」<br>
-    <br>
-    <span style="font-size:11px; color:rgba(255,255,255,0.4)">— 新宿区長より</span>
+  <p style="color:rgba(255,255,255,0.6);font-size:13px;margin-top:4px;">新宿コース 全行程完走</p>
+  <div class="governor-msg">
+    「○○さん、完歩ありがとうございます。<br>新宿の街を最後まで歩いてくださり、<br>本当に嬉しく思います。」<br><br>
+    <span style="font-size:11px;color:rgba(255,255,255,0.4)">— 新宿区長より</span>
   </div>
   <button onclick="resetDemo()">もう一度歩く</button>
 </div>
 
 <script>
-// ===== 設定 =====
-const GOAL_STEPS = 200; // デモ用ゴール歩数
-const STEP_DISTANCE = 0.75; // 1歩 = 0.75m
-const MOVE_SPEED = 0.000008; // 1歩あたりの緯度経度移動量
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI1MTgwZmE2OS1kY2MxLTQzYzAtYWRkYi04YjQyNjdlNTI0YWIiLCJpZCI6NDE5MTQ4LCJpYXQiOjE3NzYzNDg1Nzl9.S7mIHSBM1iK6I17f0eNucf9xDUTlgyfvKr5JCq6ypwo';
 
-// 新宿区スタート地点（西新宿）
-const START_POS = {
-  lon: 139.6917, 
-  lat: 35.6895,
-  height: 2.0
-};
+const GOAL_STEPS = 200;
+const MOVE_SPEED = 0.000012;
+const START_LON = 139.6917;
+const START_LAT = 35.6895;
 
-// POIスポット
 const POI_SPOTS = [
   { steps: 40,  icon: '🏢', name: '東京都庁', desc: '東京のシンボル。高さ243mの展望台から都内を一望できます。' },
   { steps: 80,  icon: '🌸', name: '新宿御苑', desc: '明治時代から続く美しい庭園。桜の名所として全国に知られています。' },
@@ -503,265 +138,175 @@ const POI_SPOTS = [
   { steps: 160, icon: '🍜', name: '思い出横丁', desc: '昭和の雰囲気が残る名所。絶品ラーメンやおでんが楽しめます。' },
 ];
 
-// ===== 状態 =====
-let steps = 0;
-let heading = 0; // 進行方向（度）
-let currentPos = { ...START_POS };
-let viewer = null;
-let sensorActive = false;
-let lastAccelY = 0;
-let stepCooldown = false;
-let turning = null;
-let turnInterval = null;
-let triggeredPOIs = new Set();
-let goalReached = false;
+let steps = 0, heading = 0;
+let currentLon = START_LON, currentLat = START_LAT;
+let viewer = null, sensorActive = false;
+let lastStepTime = 0, accelHistory = [];
+let triggeredPOIs = new Set(), goalReached = false;
+let turnInterval = null, groundHeight = 40;
 
-// ===== Cesium初期化 =====
-function initCesium() {
-  // Cesium Ionトークン不要（デフォルト地形のみ使用）
-  Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI1MTgwZmE2OS1kY2MxLTQzYzAtYWRkYi04YjQyNjdlNTI0YWIiLCJpZCI6NDE5MTQ4LCJpYXQiOjE3NzYzNDg1Nzl9.S7mIHSBM1iK6I17f0eNucf9xDUTlgyfvKr5JCq6ypwo';
+async function initCesium() {
+  // リアルな地形
+  const terrainProvider = await Cesium.createWorldTerrainAsync({ requestVertexNormals: true });
 
   viewer = new Cesium.Viewer('cesiumContainer', {
-    terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-    baseLayerPicker: false,
-    geocoder: false,
-    homeButton: false,
-    sceneModePicker: false,
-    navigationHelpButton: false,
-    animation: false,
-    timeline: false,
-    fullscreenButton: false,
-    vrButton: false,
-    infoBox: false,
-    selectionIndicator: false,
-    shadows: false,
-    shouldAnimate: false,
+    terrainProvider,
+    baseLayerPicker: false, geocoder: false, homeButton: false,
+    sceneModePicker: false, navigationHelpButton: false,
+    animation: false, timeline: false, fullscreenButton: false,
+    vrButton: false, infoBox: false, selectionIndicator: false,
+    shadows: true, shouldAnimate: true,
   });
 
-  // 背景を夜空っぽく
-  viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0a0f1a');
-  viewer.scene.skyBox.show = false;
-  viewer.scene.sun.show = false;
-  viewer.scene.moon.show = false;
-  viewer.scene.skyAtmosphere.show = false;
+  // 昼間の照明
+  viewer.clock.currentTime = Cesium.JulianDate.fromIso8601('2024-04-01T10:00:00+09:00');
+  viewer.scene.globe.enableLighting = true;
 
-  // PLATEAUデータ（新宿区）- 複数URLでフォールバック
-  const PLATEAU_URLS = [
-    // LOD2テクスチャ付き（建物外壁写真あり）
+  // PLATEAUデータ（LOD2テクスチャ付き → フォールバックLOD1）
+  document.getElementById('loading-text').textContent = 'PLATEAUデータを読み込み中...';
+  let tilesetLoaded = false;
+
+  const urls = [
     'https://assets.cms.plateau.reearth.io/assets/ad/52340f-3f7f-470e-918e-38eb9c27e2db/13104_shinjuku-ku_pref_2023_citygml_2_op_bldg_3dtiles_13104_shinjuku-ku_lod2/tileset.json',
-    // フォールバック：LOD1
     'https://plateau.geospatial.jp/main/data/3d-tiles/bldg/13100_tokyo/13104_shinjuku-ku/low_resolution/tileset.json',
   ];
 
-  async function loadPLATEAU(urls) {
-    for (const url of urls) {
-      try {
-        const tileset = viewer.scene.primitives.add(
-          new Cesium.Cesium3DTileset({
-            url,
-            maximumScreenSpaceError: 32,
-            cullWithChildrenBounds: true,
-            skipLevelOfDetail: true,
-          })
-        );
-        await tileset.readyPromise;
-        console.log('PLATEAU loaded:', url);
-        document.getElementById('loading-overlay').style.display = 'none';
-        return;
-      } catch(e) {
-        console.warn('PLATEAU failed:', url, e);
-        // 次のURLを試す
-      }
+  for (const url of urls) {
+    if (tilesetLoaded) break;
+    try {
+      const tileset = await Cesium.Cesium3DTileset.fromUrl(url, { maximumScreenSpaceError: 8 });
+      viewer.scene.primitives.add(tileset);
+      tilesetLoaded = true;
+      console.log('PLATEAU loaded:', url);
+    } catch(e) {
+      console.warn('Failed:', url);
     }
-    console.warn('All PLATEAU URLs failed');
-    document.getElementById('loading-overlay').style.display = 'none';
   }
 
-  loadPLATEAU(PLATEAU_URLS);
+  // 地形の高さを取得してカメラを正確に配置
+  document.getElementById('loading-text').textContent = '位置を確認中...';
+  try {
+    const pos = [Cesium.Cartographic.fromDegrees(START_LON, START_LAT)];
+    const updated = await Cesium.sampleTerrainMostDetailed(terrainProvider, pos);
+    groundHeight = updated[0].height || 40;
+  } catch(e) {
+    groundHeight = 40;
+  }
 
-  // カメラを歩行者視点に
   updateCamera();
+  document.getElementById('loading-overlay').style.display = 'none';
 }
 
-// ===== カメラ更新 =====
 function updateCamera() {
   if (!viewer) return;
-  
   viewer.camera.setView({
-    destination: Cesium.Cartesian3.fromDegrees(
-      currentPos.lon,
-      currentPos.lat,
-      currentPos.height + 3.0 // 目線の高さ
-    ),
+    destination: Cesium.Cartesian3.fromDegrees(currentLon, currentLat, groundHeight + 1.7),
     orientation: {
       heading: Cesium.Math.toRadians(heading),
-      pitch: Cesium.Math.toRadians(0), // 水平
-      roll: 0
+      pitch: 0.0,  // 完全に水平（地上から前を向く）
+      roll: 0.0
     }
   });
 }
 
-// ===== センサー許可 =====
 async function requestPermission() {
   document.getElementById('permission-overlay').style.display = 'none';
-  
-  if (typeof DeviceMotionEvent !== 'undefined' && 
-      typeof DeviceMotionEvent.requestPermission === 'function') {
-    // iOS 13+
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
     try {
-      const permission = await DeviceMotionEvent.requestPermission();
-      if (permission === 'granted') {
-        startSensor();
-      } else {
-        alert('センサーの許可が必要です。');
-      }
-    } catch(e) {
-      startSensor(); // エラー時もとりあえず開始
-    }
+      const perm = await DeviceMotionEvent.requestPermission();
+      if (perm === 'granted') startSensor();
+    } catch(e) { startSensor(); }
   } else {
-    // Android / その他
     startSensor();
   }
 }
 
-// ===== センサー開始 =====
 function startSensor() {
   sensorActive = true;
-  
   window.addEventListener('devicemotion', handleMotion, true);
   window.addEventListener('deviceorientation', handleOrientation, true);
-  
-  // デバッグ表示
-  // document.getElementById('debug').style.display = 'block';
 }
 
-// ===== 加速度センサー（歩行検知） =====
-let accelHistory = [];
-let lastStepTime = 0;
-
-function handleMotion(event) {
+function handleMotion(e) {
   if (!sensorActive || goalReached) return;
-  
-  const acc = event.accelerationIncludingGravity;
+  const acc = e.accelerationIncludingGravity;
   if (!acc) return;
-  
-  const ay = acc.y || 0;
-  const az = acc.z || 0;
-  const magnitude = Math.sqrt(ay * ay + az * az);
-  
-  accelHistory.push(magnitude);
+  const ax = acc.x||0, ay = acc.y||0, az = acc.z||0;
+  const mag = Math.sqrt(ax*ax + ay*ay + az*az);
+  accelHistory.push(mag);
   if (accelHistory.length > 10) accelHistory.shift();
-  
-  const avg = accelHistory.reduce((a, b) => a + b, 0) / accelHistory.length;
-  const diff = Math.abs(magnitude - avg);
-  
+  const avg = accelHistory.reduce((a,b)=>a+b,0)/accelHistory.length;
   const now = Date.now();
-  
-  // 歩行検知：加速度の変化が閾値以上、かつ前回の検知から0.3秒以上経過
-  if (diff > 2.5 && now - lastStepTime > 300) {
+  if (Math.abs(mag-avg) > 2.5 && now - lastStepTime > 300) {
     lastStepTime = now;
-    detectStep();
+    onStep();
   }
-  
-  // デバッグ
-  // document.getElementById('debug').textContent = `acc: ${magnitude.toFixed(1)} diff: ${diff.toFixed(1)}`;
 }
 
-// ===== ジャイロ（向き） =====
-function handleOrientation(event) {
+function handleOrientation(e) {
   if (!sensorActive) return;
-  
-  if (event.webkitCompassHeading !== undefined) {
-    // iOS: コンパス方向
-    heading = event.webkitCompassHeading;
-  } else if (event.alpha !== null) {
-    // Android
-    heading = 360 - event.alpha;
-  }
-  
+  heading = e.webkitCompassHeading !== undefined ? e.webkitCompassHeading : (360 - (e.alpha||0));
   if (viewer) {
     viewer.camera.setView({
       destination: viewer.camera.position,
-      orientation: {
-        heading: Cesium.Math.toRadians(heading),
-        pitch: Cesium.Math.toRadians(-3),
-        roll: 0
-      }
+      orientation: { heading: Cesium.Math.toRadians(heading), pitch: 0, roll: 0 }
     });
   }
 }
 
-// ===== 1歩検知 =====
-function detectStep() {
+function onStep() {
   steps++;
   updateStats();
-  flashStepIndicator();
+  flashStep();
   moveForward();
   checkPOI();
-  
-  if (steps >= GOAL_STEPS && !goalReached) {
-    setTimeout(showGoal, 500);
-  }
+  if (steps >= GOAL_STEPS && !goalReached) setTimeout(showGoal, 500);
 }
 
-// ===== 前進 =====
-function moveForward() {
+async function moveForward() {
   const rad = Cesium.Math.toRadians(heading);
-  currentPos.lon += Math.sin(rad) * MOVE_SPEED;
-  currentPos.lat += Math.cos(rad) * MOVE_SPEED;
+  currentLon += Math.sin(rad) * MOVE_SPEED;
+  currentLat += Math.cos(rad) * MOVE_SPEED;
+  // 移動後の地形高さを取得
+  try {
+    const pos = [Cesium.Cartographic.fromDegrees(currentLon, currentLat)];
+    const updated = await Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, pos);
+    groundHeight = updated[0].height || groundHeight;
+  } catch(e) {}
   updateCamera();
 }
 
-// ===== 方向転換 =====
 function startTurn(dir) {
   stopTurn();
   turnInterval = setInterval(() => {
-    heading += (dir === 'left' ? -3 : 3);
-    heading = ((heading % 360) + 360) % 360;
-    if (viewer) {
-      viewer.camera.setView({
-        destination: viewer.camera.position,
-        orientation: {
-          heading: Cesium.Math.toRadians(heading),
-          pitch: Cesium.Math.toRadians(-3),
-          roll: 0
-        }
-      });
-    }
+    heading += dir === 'left' ? -3 : 3;
+    heading = ((heading%360)+360)%360;
+    if (viewer) viewer.camera.setView({
+      destination: viewer.camera.position,
+      orientation: { heading: Cesium.Math.toRadians(heading), pitch: 0, roll: 0 }
+    });
   }, 50);
 }
 
-function stopTurn() {
-  if (turnInterval) {
-    clearInterval(turnInterval);
-    turnInterval = null;
-  }
-}
+function stopTurn() { if (turnInterval) { clearInterval(turnInterval); turnInterval = null; } }
 
-// ===== UI更新 =====
 function updateStats() {
   document.getElementById('step-count').textContent = steps;
-  const dist = (steps * STEP_DISTANCE);
-  document.getElementById('distance').textContent = dist >= 1000 
-    ? (dist/1000).toFixed(1) + 'km' 
-    : Math.round(dist) + 'm';
-  const progress = Math.min(100, Math.round((steps / GOAL_STEPS) * 100));
-  document.getElementById('progress-text').textContent = progress + '%';
+  const d = steps * 0.75;
+  document.getElementById('distance').textContent = d >= 1000 ? (d/1000).toFixed(1)+'km' : Math.round(d)+'m';
+  document.getElementById('progress-text').textContent = Math.min(100, Math.round(steps/GOAL_STEPS*100))+'%';
 }
 
-function flashStepIndicator() {
+function flashStep() {
   const el = document.getElementById('step-indicator');
   el.classList.add('active');
-  setTimeout(() => el.classList.remove('active'), 150);
+  setTimeout(()=>el.classList.remove('active'), 150);
 }
 
-// ===== POIチェック =====
 function checkPOI() {
   for (const poi of POI_SPOTS) {
     if (!triggeredPOIs.has(poi.steps) && steps >= poi.steps) {
-      triggeredPOIs.add(poi.steps);
-      showPOI(poi);
-      break;
+      triggeredPOIs.add(poi.steps); showPOI(poi); break;
     }
   }
 }
@@ -773,32 +318,25 @@ function showPOI(poi) {
   document.getElementById('poi-notification').style.display = 'block';
 }
 
-function closePOI() {
-  document.getElementById('poi-notification').style.display = 'none';
-}
+function closePOI() { document.getElementById('poi-notification').style.display = 'none'; }
 
-// ===== ゴール =====
 function showGoal() {
-  goalReached = true;
-  sensorActive = false;
+  goalReached = true; sensorActive = false;
   document.getElementById('goal-overlay').style.display = 'flex';
 }
 
 function resetDemo() {
-  steps = 0;
-  heading = 0;
-  currentPos = { ...START_POS };
-  triggeredPOIs.clear();
-  goalReached = false;
-  sensorActive = true;
-  updateStats();
-  updateCamera();
+  steps = 0; heading = 0; currentLon = START_LON; currentLat = START_LAT;
+  triggeredPOIs.clear(); goalReached = false; sensorActive = true;
+  updateStats(); updateCamera();
   document.getElementById('goal-overlay').style.display = 'none';
 }
 
-// ===== 初期化 =====
 window.addEventListener('load', () => {
-  initCesium();
+  initCesium().catch(e => {
+    console.error(e);
+    document.getElementById('loading-overlay').style.display = 'none';
+  });
 });
 </script>
 </body>
