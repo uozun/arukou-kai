@@ -519,7 +519,7 @@ let goalReached = false;
 // ===== Cesium初期化 =====
 function initCesium() {
   // Cesium Ionトークン不要（デフォルト地形のみ使用）
-  Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc4MzgiLCJpZCI6NTc3MzMsImlhdCI6MTYyMjY0NDE0N30.XcKpgANiY19MC4bdFUXMVEBToBmqS8kuYpUlxJHYZxk';
+  Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI1MTgwZmE2OS1kY2MxLTQzYzAtYWRkYi04YjQyNjdlNTI0YWIiLCJpZCI6NDE5MTQ4LCJpYXQiOjE3NzYzNDg1Nzl9.S7mIHSBM1iK6I17f0eNucf9xDUTlgyfvKr5JCq6ypwo';
 
   viewer = new Cesium.Viewer('cesiumContainer', {
     terrainProvider: new Cesium.EllipsoidTerrainProvider(),
